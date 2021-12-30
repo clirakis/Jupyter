@@ -1,0 +1,3 @@
+30-Dec-21 Simulate motion and a magnetic field for multistatic processing. 
+Basic idea - All cell phones have magnetometers in them. Is it possible to get them to use their GPS data in conjunction with the magnetometer data and
+do some sort of multistatic processing to produce a map. This came about during walks I have had with my daughter. 
