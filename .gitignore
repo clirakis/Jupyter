@@ -3,3 +3,6 @@
 ._*
 .DS_Store
 *~
+*.wav
+*.csv
+*.txt
