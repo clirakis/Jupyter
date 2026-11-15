@@ -38,14 +38,26 @@ from TxOSC import TxOSC
 
 # Global variable. May not need. 
 ThreadRun = True
+iFreq = 110.0
 
 def Halt(address, *args):
+    """
+    Shutdown this server
+    """
     print('HALT!')
     global server
-    global Tx
     ThreadRun = False
     threading.Thread(target=server.shutdown, daemon=True).start()
 
+def Gimme(address, *args):
+    """
+    example of a general request. 
+    """
+    global Tx
+    global iFreq
+    Tx.FreqPhase(iFreq, 0.0)
+    iFreq = iFreq * 2
+    
 def EventHandler(address, *args):
     """
     This is the callback function for the dispatcher.
@@ -87,12 +99,15 @@ def BlockingServer():
     global server
     dispatcher = Dispatcher()
     dispatcher.map("/Halt", Halt)
+    dispatcher.map("/Gimme", Gimme)
     dispatcher.set_default_handler(EventHandler)
     # lisetn on local host. The receive port for this process
     # is 9002. 
     server = BlockingOSCUDPServer(("127.0.0.1", 9002), dispatcher)
     print("Listening on port 9002")
     # Not yet sure how this exits. It will as it says do an endless loop
+    # This can be moved into its own thread to make a loop here if
+    # we want. 
     server.serve_forever()
     
     
