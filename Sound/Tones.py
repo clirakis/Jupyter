@@ -52,4 +52,5 @@ def SetTone():
     
     
 if __name__ == '__main__':
-    SetTone()
+    #SetTone()
+    LoopTest()
