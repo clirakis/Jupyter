@@ -13,6 +13,8 @@
 # 20-Aug-25 CBL Original in jupyter notebook form.
 # 05-Nov-26 CBL Moved to python script for those who don't want to use Jupyter
 # 13-Nov-26 CBL Updated to include a loop to talk via OSC
+# 17-Nov-26 CBL added in real backend in RNG_BE.py, there are conflicts
+#               with some names
 #
 # References 
 #    https://docs.quantum.ibm.com/guides/install-qiskit 
@@ -52,11 +54,13 @@ import scipy.constants as const
 # Qiskit imports
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Parameter
-from qiskit_aer import AerSimulator
+# Careful Runtime and AER both have the same sampler name. 
 from qiskit_aer.primitives import SamplerV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info import Pauli
 from scipy.spatial.transform import Rotation as R
+# If you want to use the simulator this include is necessary
+from qiskit_aer import AerSimulator
 
 import struct
 
@@ -195,7 +199,16 @@ class OSC_RxTx:
 #
 class RNG:
     def __init__(self):
+        """
+        Initialize all the services we will need.
+        @param use_simulator - set to true (default) if wanted.
+        The following parameters are my credentials to run on real hardware
+        """
+        self.MyDebug       = False
+        
         sim = AerSimulator()
+        print("Using AER simulator.")
+            
         # Define the number of quantum bits. 
         nqbit     = 1
         # for using the sampler, we need some clasical bits to store the output data
@@ -208,16 +221,6 @@ class RNG:
         # Here we tell the circuit that we want to use the quantum and
         # classical registers we created above. 
         self.qc   = QuantumCircuit(qreg, creg)
-        # Create an estimator - this gives the expectation value of each system. 
-        # the number of shots is the number of times that the experiment is
-        # replicated to produce statistics. 
-        # In the estimator, you specify the precision instead, this is the
-        # default and can be overriden in 
-        # the estimator run command. Default precision is 0
-        #
-        # reference: https://quantum.cloud.ibm.com/docs/en/api/qiskit-ibm-runtime/sampler-v2
-        #
-        self.sampler = SamplerV2()
         #
         #
         # Create the quantum circuit 
@@ -229,10 +232,13 @@ class RNG:
         # Create the OSC connection
         #
         self.pOSC = OSC_RxTx()
+
+        # MOVE THIS TO A METHOD.
         #
         # SETUP THE CIRCUIT. 
         # Apply a hadamard on qubit 0 - this creates equal path case, superposition
-        # The Hadamard gate can also be expressed as a 90º rotation around the Y-axis, followed by a 180º around the X-axis. 
+        # The Hadamard gate can also be expressed as a 90º rotation
+        # around the Y-axis, followed by a 180º around the X-axis. 
         #
         self.qc.h(0)
         # finally perform a measurement
@@ -243,6 +249,17 @@ class RNG:
         # This may be commented out. 
         #qc.draw(output='mpl')
         #plt.show()
+        # Create an estimator - this gives the expectation value of each system.
+        # the number of shots is the number of times that the experiment is
+        # replicated to produce statistics. 
+        # In the estimator, you specify the precision instead, this is the
+        # default and can be overriden in 
+        # the estimator run command. Default precision is 0
+        #
+        # reference: https://quantum.cloud.ibm.com/docs/en/api/qiskit-ibm-runtime/sampler-v2
+        #
+        self.sampler = SamplerV2()
+                  
 
     # RNG - get a group of numbers as needed. 
     def GetRNG(self):
@@ -270,12 +287,17 @@ class RNG:
         16 bit numbers. Then I want the number of shots to 
         be evenly divisable by 16
         """
-        # Declare we want 16 bit numbers, we can always change this or make it tranparent.
+        # Declare we want 16 bit numbers, we can always change
+        # this or make it tranparent.
+        if self.MyDebug:
+            print("GetRNG")
+            
         BitLength = 16
         DesiredNumbers = 100
         NShots = DesiredNumbers * BitLength
         # Run the job
         job = self.sampler.run([self.qc],shots=NShots)
+
         # get the results
         result = job.result()[0] # only 1 qubit
         #
@@ -321,7 +343,9 @@ class RNG:
         # this is me just setting it to a plesant tone at the end. 
         self.pOSC.FreqPhase(110.0, 0.0, 1)
 
-
+    def SetDebug(self, value=True):
+        self.MyDebug = value
+                  
 def PlotMe(xy):
     plt.hist(xy)
     plt.grid()
@@ -331,7 +355,7 @@ def PlotMe(xy):
 if __name__ == '__main__':
  
     rng = RNG()
-    #rn = rng.GetRNG()
+    rn = rng.GetRNG()
     # debug, uncomment to see distribution of RN.
-    #PlotMe(rn)
-    rng.Loop(2)
+    PlotMe(rn)
+    #rng.Loop(2)
